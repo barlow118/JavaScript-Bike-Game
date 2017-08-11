@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<head>
+<title>Stickman Bike Game</title>
+<link rel="stylesheet" type="text/css" href="styles.css">
+
+</head>
+
+<body onload="start_game()">
+<div id="menu">
+<ul>
+  <li><a href="index.html">Home</a></li>
+  <li><a href="about.html">About</a></li>
+</ul></nav></div>
+
+	<h3>Stick man Biker Game</h3>
+	<canvas id="canvas2" width="1000" height="500" style="border:1px dotted"></canvas>
+	<canvas id="canvas1" width="1000" height="500" style="border:1px dotted" >Your browser does not support canvas. Please try again with a different browser.</canvas>
+	
+
+	<script>
+	
+	var canvbg=document.getElementById("canvas2");
+	var ctxbg=canvbg.getContext("2d");
+	
+	var mycanv=document.getElementById("canvas1");
+	var ctx=mycanv.getContext("2d");
+	mycanv.addEventListener("mousedown",doMouseDown,false);
+	
+
+	
+	
+	
+	// global variables 
+	var gravity = 1.00; 
+	var isJumping = false;
+	var bgx = 0;      //background
+	var stx = 0;		//stone wall
+
+	var gap_speed = 4;		
+	var pop = false; 
+	var endgame = false;
+	var space = 1000;
+	var lives = 3;
+	var bump = false;
+	var numGaps = 8;
+
+	var score =0;
+	var fall = false;
+	var falling = false;
+
+	var replayObject = {x:0,y:0,w:0,h:0};
+	
+	//text 
+	function draw_overlay(){
+    ctxbg.font="30px Verdana";
+    ctxbg.fillText(lives,950,30);
+	ctxbg.fillText("Lives Left",750,30);
+	ctxbg.fillText(score,230,30);
+	ctxbg.fillText("Jump Score",20,30);
+}
+
+
+	
+	var imageRepository = new function() {
+	// Define images
+	this.empty = null;
+	this.background = new Image();
+	this.stone = new Image();
+	this.player = new Image();
+	this.gap = new Image();
+	this.replay = new Image();
+	
+	// Set images src
+	this.background.src = "7.png";
+//	this.stone.src = "5.png";
+	this.player.src = "bike.png";
+	this.gap.src = "gap.png"
+	this.replay.src ="button_replay.png";
+	}
+	
+	
+	//player object
+	var player = {
+	isHit: false,
+	x:200,      //position
+	y:350,			//position
+	width: 71,
+	height: 59,
+	yVel: 0,
+	draw: function(x,y) {
+	ctx.drawImage(imageRepository.player,x,y,50,50);
+	},
+	 hit: function(){    
+    if(this.isHit == false){
+        if(!isJumping){
+	lives --;
+    }
+   this.isHit = true;
+	}
+  
+      if(lives == 0) {
+		
+	  stopgame();   //call game over 
+
+      }
+  },
+  jump: function(vel) {
+    if (isJumping == false) {
+       this.yVel = vel;
+        isJumping = true;
+		score +=1;
+    }
+  }
+};
+	
+	
+	gaps = [];
+	
+	function Gap(I) {    //gap function
+  I = I || {};
+  I.room = false;
+  I.active = true;
+  I.x = 1101 + (Math.random() * 200);
+  I.y = 375;
+  I.xVelocity = 8;
+
+  I.width = 25;
+  I.height = 25;
+
+  I.active = function() {
+    if(I.x < -500){
+        return true;
+    }
+    else{
+        return false;
+    }
+  };
+
+  I.draw = function() {
+    ctx.drawImage(imageRepository.gap,I.x,I.y,25,65);
+  };
+
+  I.update = function() {
+    I.x = I.x - I.xVelocity;
+    if (I.x < space) {
+    I.room = true;
+    }
+  };
+
+  return I;
+};
+	
+	function collides(a, b) {
+  return a.x < b.x + b.width &&
+         a.x + a.width > b.x &&
+         a.y < b.y + b.height &&
+         a.y + a.height > b.y;
+}
+	
+	function handleCollisions() {
+  gaps.forEach(function(gap) {
+    if (collides(gap, player)) {
+        player.hit();
+        bump = true;
+    }
+  });
+    if(!bump){
+        player.isHit = false;
+    }
+    bump = false;
+}
+	
+		var BoundinClient,offsetX,offsetY;
+	BoundinClient=mycanv.getBoundingClientRect();
+	offsetX=BoundinClient.left;
+	offsetY=BoundinClient.top;
+
+	
+	function setBB(){
+		BB=canvas.getBoundingClientRect();
+    	BBoffsetX=BB.left;
+        BBoffsetY=BB.top;
+ 
+}
+
+	function doMouseDown(e) { 										//mouse controls 
+     player.jump(-15);  
+	 e.preventDefault();
+  e.stopPropagation();
+	  var mx=e.clientX-offsetX;
+  var my=e.clientY-offsetY;
+  console.log(mx,my);
+  
+  	if (mx>=420&& mx<=420 +110 && my>=310 && my<=310 +40){      //420, 310    make rect with those values 
+		console.log("clicked");
+	}
+	// if mouse x and y == replay game loop restarts
+	
+			if((mx>=replayObject.x && mx<=replayObject.x +replayObject.w) && (my>=replayObject.y && my<=replayObject.y +replayObject.h)){
+	console.log("replay");
+location.reload();
+		}
+	
+}
+
+	//update gaps
+	function update_gaps(){
+    var index = 0;
+    gaps.forEach(function(gap) {
+    if(gap.active()){
+        gaps.splice(index,1);
+        index++;
+        if(index = 4){
+        index =0;
+        }
+    }
+    else{
+    gap.update();
+    }
+  });
+     gaps.forEach(function(gap) {
+        if(gap.room == false){
+            pop = true;
+        }
+     });
+    if(((Math.random() * 100) < numGaps) && (gaps.length < 4) && !pop){ 
+    gaps.push(Gap());
+     }
+    pop = false;
+};
+	
+	function draw_gaps(){
+    gaps.forEach(function(gap) {
+    gap.draw();
+  });
+}
+	
+	function start_game() { 
+    animate();
+} 	
+	
+	function game_loop(mx,my) {						//game loop
+    if(!endgame){
+	draw_background();
+	draw_stone();
+    draw_overlay();
+
+   ctx.clearRect(0,0,1000,500);
+    draw_gaps();
+	update_gaps();
+	handleCollisions();
+	player.draw(player.x,player.y); 
+	
+	  if (isJumping) {
+     player.yVel += gravity;
+     player.y += player.yVel;
+         if (player.y > 350) {		//jump rules
+             player.y = 350;
+             player.yVel = 0;
+             isJumping = false;
+            }
+     }
+}
+else{
+ ctx.clearRect(0,0,1000,500);
+ //draw_background();
+	//draw_stone();
+	
+	    ctxbg.fillText(lives,950,30);
+	
+	ctxbg.fillText("Lives Left",750,30);
+	ctxbg.fillText("Game Over",400,250);
+					//fix this bug
+	//ctxbg.fillText("Replay",420,310);
+	
+	ctxbg.drawImage(imageRepository.replay, 420, 310);
+	replayObject = {x:420,y:310,w:110,h:40};
+
+	
+}
+}
+	
+	
+	function stopgame() {
+ 
+    endgame = true; 
+	ctxbg.clearRect(0,0,1000,500);
+ ctx.clearRect(0,0,1000,500);
+ 	draw_background();
+	draw_stone();
+    draw_overlay();
+	endscore(score);
+}
+	
+	function endscore(){
+	    ctxbg.fillText("Jump Score:",400,280);
+	ctxbg.fillText(score,600,280);	
+	}
+	
+	function draw_background(){
+    var speed = 2;
+    bgx = bgx - speed;
+    
+	
+	ctxbg.drawImage(imageRepository.background, bgx, 0);
+
+    ctxbg.drawImage(imageRepository.background, bgx + 1000, 0);
+
+    if (bgx <= 0 - 1000)
+        bgx = 0; 
+}
+	
+	function draw_stone(){
+    var speed = 5;
+    stx = stx - speed;
+    ctxbg.drawImage(imageRepository.stone, stx, 375);
+ 
+    ctxbg.drawImage(imageRepository.stone, stx + 1000, 375);
+ 
+    if (stx <= 0 - 1000)
+        stx = 0; 
+}
+	
+	function animate() {
+	requestAnimationFrame( animate );
+	game_loop();
+	}
+	
+
+	
+	//Used from https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame
+	window.requestAnimFrame = (function(){
+	return  window.requestAnimationFrame       || 
+			window.webkitRequestAnimationFrame || 
+			window.mozRequestAnimationFrame    || 
+			window.oRequestAnimationFrame      || 
+			window.msRequestAnimationFrame     || 
+			function(/* function */ callback, /* DOMElement */ element){
+				window.setTimeout(callback, 1000 / 60);
+			};
+})();
+    
+	
+
+
+	
+	</script>
+	<div id=footer>
+	<p>
+	
+	Use the left click button to jump over as many dark pits as you can!
+	
+	</p>
+	</div>
+	
+	
+</body>
